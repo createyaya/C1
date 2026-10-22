@@ -1527,7 +1527,8 @@
                     { name: '云', cards: ['云一', '云二', '云三', '云四', '云五'] },
                     { name: '山', cards: ['山一', '山二', '山三', '山四', '山五'] },
                     { name: '水', cards: ['水一', '水二', '水三', '水四', '水五'] },
-                    { name: '城', cards: ['城一', '城二', '城三', '城四', '城五'] }
+                    { name: '城', cards: ['城一', '城二', '城三', '城四', '城五'] },
+                    { name: '点亮卡牌', cards: ['点亮一', '点亮二', '点亮三', '点亮四', '点亮五'] }
                 ],
                 latestCards: ['Handan 邯郸', '卡片二', '卡片三', '卡片四', '卡片五'],
                 // 中国城市名录（A-Z）
@@ -1772,15 +1773,58 @@
             let saved = null;
             try { saved = localStorage.getItem('ideology-my-city'); } catch (e) {}
             grid.appendChild(createCityCurrentCard(saved));
-            for (let i = 0; i < 4; i++) {
-                const card = document.createElement('div');
-                card.className = 'brand-card my-card';
-                const blank = document.createElement('div');
-                blank.className = 'my-card-empty';
-                blank.style.cursor = 'default';
-                card.appendChild(blank);
-                grid.appendChild(card);
-            }
+            // 后续卡位：可上传图片，可自行增加
+            appendCitySlots(grid, 'row', ['城位一', '城位二', '城位三', '城位四']);
+        }
+
+        // ===== 城史通用卡位：上传图片 + 无限增加 =====
+        function loadSlotNames(key, initial) {
+            try {
+                const v = JSON.parse(localStorage.getItem('ideology-slots-' + key));
+                if (Array.isArray(v)) return v;
+            } catch (e) {}
+            return initial.slice();
+        }
+
+        function saveSlotNames(key, list) {
+            try { localStorage.setItem('ideology-slots-' + key, JSON.stringify(list)); } catch (e) {}
+        }
+
+        function appendCitySlots(container, key, initial) {
+            loadSlotNames(key, initial).forEach(n => container.appendChild(createArtCard(n)));
+            const card = document.createElement('div');
+            card.className = 'brand-card my-card';
+            const empty = document.createElement('div');
+            empty.className = 'my-card-empty';
+            empty.style.cursor = 'pointer';
+            empty.innerHTML = '<div class="plus">＋</div><div class="hint">增加卡位</div>';
+            card.appendChild(empty);
+            const name = document.createElement('div');
+            name.className = 'card-name';
+            name.textContent = '增加卡位';
+            card.appendChild(name);
+            card.addEventListener('click', () => {
+                const list2 = loadSlotNames(key, initial);
+                const nm = (window.prompt('卡位名称（留空自动编号）') || ('卡位' + (list2.length + 1))).trim();
+                list2.push(nm);
+                saveSlotNames(key, list2);
+                refreshCityViews();
+            });
+            container.appendChild(card);
+        }
+
+        function refreshCityViews() {
+            renderMyCards(document.getElementById('card-grid'), 'city');
+            renderCityLatest();
+        }
+
+        // LATEST IN CITY：邯郸卡 + 上传卡位（无限增加）
+        function renderCityLatest() {
+            const grid = document.getElementById('latest-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            grid.appendChild(createCard('city', 'latest', 'Handan 邯郸'));
+            appendCitySlots(grid, 'latest', ['卡片二', '卡片三', '卡片四', '卡片五']);
         }
 
         function createCityCurrentCard(savedText) {
@@ -2048,9 +2092,14 @@
             const latestGrid = document.createElement('div');
             latestGrid.id = 'latest-grid';
             latestGrid.className = 'card-grid row5';
-            data.latestCards.forEach(cardName => {
-                latestGrid.appendChild(createCard(category, 'latest', cardName));
-            });
+            if (category === 'city') {
+                latestGrid.appendChild(createCard(category, 'latest', 'Handan 邯郸'));
+                appendCitySlots(latestGrid, 'latest', ['卡片二', '卡片三', '卡片四', '卡片五']);
+            } else {
+                data.latestCards.forEach(cardName => {
+                    latestGrid.appendChild(createCard(category, 'latest', cardName));
+                });
+            }
             latestSection.appendChild(latestGrid);
             latestFlex.appendChild(latestSection);
             main.appendChild(latestFlex);
